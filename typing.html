@@ -9,9 +9,14 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap">
   <style>
-    body { margin: 0; background: #0d1b2a; color: #e8f4f8; font-family: 'M PLUS Rounded 1c', sans-serif; }
+    body { margin: 0; background: #0d1b2a; color: #e8f4f8; font-family: 'M PLUS Rounded 1c', sans-serif; overflow-x: hidden; }
     @keyframes twinkle { from { opacity: 0.15; } to { opacity: 0.75; } }
     @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .card { background: #1a2d45; border-radius: 20px; padding: 2rem; box-shadow: 0 0 30px rgba(0,229,255,0.15); max-width: 600px; margin: 0 auto; text-align: center; }
+    input { width: 80%; background: #0a1828; border: 2px solid rgba(0,229,255,0.3); border-radius: 10px; padding: 12px; color: white; fontSize: 1.2rem; outline: none; margin-bottom: 20px; }
+    button { background: transparent; border: 2px solid #00e5ff; color: #00e5ff; border-radius: 12px; padding: 0.8rem 1.5rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin: 5px; }
+    button:hover { background: rgba(0,229,255,0.1); transform: scale(1.05); }
+    button:disabled { border-color: #444; color: #444; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -20,32 +25,36 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // ★ ここにデプロイしたウェブアプリのURLを貼り付けてください ★
-    const API_URL = "https://script.google.com/macros/s/AKfycbz8U5ICHG_zlgyYSeLV2iNShEBzMHJadWxy_6OJ7rIXPIQqY_zr-tPEikQUxPyC6yL0/exec";
-
-    const t = { bg: "#0d1b2a", panel: "#1a2d45", accent: "#00e5ff", gold: "#ffd166", green: "#06d6a0", red: "#ef476f", text: "#e8f4f8", muted: "#7fa8c0" };
+    // ★ ここを新しいGASのURLに書き換えてください ★
+    const API_URL = "https://script.google.com/macros/s/AKfycbxsFZeqhUYRrs2_YEH3JOIqCgOzzKchF-4Pwgwb6_G5mlr7nkmR_1yZactSWbvxcgvJ/exec";
 
     function App() {
       const [screen, setScreen] = useState("home");
       const [playerName, setName] = useState("");
-      const [sharedText, setText] = useState("私のなまえはノビール三世");
+      const [sharedText, setText] = useState("Hello World! This is a typing mission.");
       const [input, setInput] = useState("");
       const [startTime, setStart] = useState(null);
       const [mistakes, setMistakes] = useState(0);
       const [rankings, setRankings] = useState([]);
-      const [loading, setLoading] = useState(false);
+      const [status, setStatus] = useState(""); // 通信状態表示用
 
-      // ランキング読み込み
-      const fetchRankings = () => {
-        fetch(API_URL)
-          .then(res => res.json())
-          .then(data => setRankings(data))
-          .catch(err => console.error("Fetch Error:", err));
+      // ランキング取得
+      const fetchRankings = async () => {
+        setStatus("🛰️ データ受信中...");
+        try {
+          const res = await fetch(API_URL);
+          const data = await res.json();
+          setRankings(Array.isArray(data) ? data : []);
+          setStatus("");
+        } catch (err) {
+          console.error(err);
+          setStatus("❌ 通信エラーが発生しました");
+        }
       };
 
       useEffect(() => { fetchRankings(); }, []);
 
-      const handleType = (e) => {
+      const handleType = async (e) => {
         const val = e.target.value;
         if (!startTime) setStart(Date.now());
         
@@ -59,74 +68,69 @@
         if (val === sharedText) {
           const time = (Date.now() - startTime) / 1000;
           const result = { name: playerName, chars: val.length, mistakes: errs, time: time };
-          setLoading(true);
+          setStatus("🚀 記録を送信中...");
           
-          // スプレッドシートに送信
-          fetch(API_URL, {
-            method: "POST",
-            body: JSON.stringify(result)
-          })
-          .then(() => {
-            alert(`ミッション完了！ タイム: ${time}秒`);
-            fetchRankings();
+          try {
+            await fetch(API_URL, { method: "POST", body: JSON.stringify(result) });
+            await fetchRankings();
             setScreen("ranking");
             setInput("");
             setStart(null);
-            setLoading(false);
-          });
+          } catch (err) {
+            alert("送信に失敗しました。ネット接続を確認してください。");
+          } finally {
+            setStatus("");
+          }
         }
       };
-
-      const cardStyle = { background: t.panel, borderRadius: "20px", padding: "2rem", boxShadow: `0 0 30px ${t.accent}22`, maxWidth: "600px", margin: "0 auto", textAlign: "center", position: "relative" };
-      const btnStyle = (color = t.accent) => ({ background: "transparent", border: `2px solid ${color}`, color, borderRadius: "12px", padding: "0.8rem 1.5rem", fontSize: "1rem", cursor: "pointer", fontWeight: "bold", margin: "5px" });
-      const inputStyle = { width: "80%", background: "#0a1828", border: `2px solid ${t.accent}44`, borderRadius: "10px", padding: "12px", color: "white", fontSize: "1.2rem", outline: "none" };
 
       return (
         <div style={{ padding: "2rem" }}>
           <div style={{ textAlign: "center", marginBottom: "2rem" }}>
             <div style={{ fontSize: "4rem", animation: "float 3s infinite" }}>🚀</div>
-            <h1 style={{ color: t.accent, fontWeight: 900 }}>宇宙タイピング共有版</h1>
-            {loading && <div style={{ color: t.gold }}>🛰️ 通信中...</div>}
+            <h1 style={{ color: "#00e5ff", fontWeight: 900 }}>宇宙タイピング 共有版</h1>
+            <div style={{ height: "20px", fontSize: "0.9rem", color: "#ffd166" }}>{status}</div>
           </div>
 
           {screen === "home" && (
-            <div style={cardStyle}>
-              <p>パイロット名を入力</p>
-              <input style={inputStyle} value={playerName} onChange={e => setName(e.target.value)} placeholder="なまえ" />
-              <div style={{ marginTop: "20px" }}>
-                <button style={btnStyle(t.green)} onClick={() => setScreen("typing")} disabled={!playerName}>開始！</button>
-                <button style={btnStyle(t.gold)} onClick={() => setScreen("ranking")}>ランキング</button>
-              </div>
+            <div className="card">
+              <p>パイロット名を入力して開始</p>
+              <input value={playerName} onChange={e => setName(e.target.value)} placeholder="なまえ" />
+              <br/>
+              <button onClick={() => setScreen("typing")} disabled={!playerName} style={{borderColor: "#06d6a0", color: "#06d6a0"}}>ミッション開始</button>
+              <button onClick={() => setScreen("ranking")} style={{borderColor: "#ffd166", color: "#ffd166"}}>ランキング</button>
             </div>
           )}
 
           {screen === "typing" && (
-            <div style={cardStyle}>
-              <div style={{ fontSize: "1.5rem", marginBottom: "20px", textAlign: "left", lineHeight: "1.8" }}>
+            <div className="card">
+              <div style={{ fontSize: "1.5rem", marginBottom: "20px", textAlign: "left", lineHeight: "1.8", wordBreak: "break-all" }}>
                 {sharedText.split("").map((ch, i) => (
                   <span key={i} style={{
-                    color: i < input.length ? (input[i] === ch ? t.green : t.red) : t.muted,
-                    background: i === input.length ? `${t.accent}33` : "none"
+                    color: i < input.length ? (input[i] === ch ? "#06d6a0" : "#ef476f") : "#7fa8c0",
+                    background: i === input.length ? "rgba(0,229,255,0.2)" : "none"
                   }}>{ch}</span>
                 ))}
               </div>
-              <input autoFocus style={inputStyle} value={input} onChange={handleType} />
-              <div style={{ marginTop: "15px", color: t.red }}>ミス: {mistakes}</div>
+              <input autoFocus value={input} onChange={handleType} />
+              <div style={{ marginTop: "15px", color: "#ef476f" }}>❌ ミス: {mistakes}</div>
             </div>
           )}
 
           {screen === "ranking" && (
-            <div style={cardStyle}>
-              <h2>🏆 教室ランキング</h2>
-              <div style={{ maxHeight: "300px", overflowY: "auto", textAlign: "left" }}>
-                {rankings.map((r, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px", borderBottom: "1px solid #333" }}>
-                    <span>{i + 1}. {r.name}</span>
-                    <span style={{ color: t.accent }}>{r.time}秒</span>
-                  </div>
-                ))}
+            <div className="card">
+              <h2 style={{ color: "#ffd166" }}>🏆 教室ランキング</h2>
+              <div style={{ maxHeight: "300px", overflowY: "auto", textAlign: "left", padding: "10px" }}>
+                {rankings.length === 0 ? <p>データがありません</p> : 
+                  rankings.map((r, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #333" }}>
+                      <span>{i + 1}. {r.name}</span>
+                      <span style={{ color: "#00e5ff" }}>{r.time.toFixed(2)}秒</span>
+                    </div>
+                  ))
+                }
               </div>
-              <button style={btnStyle()} onClick={() => setScreen("home")} style={{ marginTop: "20px" }}>戻る</button>
+              <button onClick={() => setScreen("home")} style={{ marginTop: "20px" }}>戻る</button>
             </div>
           )}
         </div>
