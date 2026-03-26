@@ -3,21 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>タイピング宇宙船 - 5分間チャレンジ</title>
+  <title>タイピング宇宙船 - 実践モード</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap">
   <style>
     body { margin: 0; background: #0d1b2a; color: #e8f4f8; font-family: 'M PLUS Rounded 1c', sans-serif; overflow-x: hidden; }
-    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-    .card { background: #1a2d45; border-radius: 20px; padding: 2rem; box-shadow: 0 0 30px rgba(0,229,255,0.15); max-width: 800px; margin: 0 auto; text-align: center; }
-    textarea { width: 90%; background: #0a1828; border: 2px solid rgba(0,229,255,0.3); border-radius: 10px; padding: 15px; color: white; fontSize: 1.4rem; outline: none; margin-top: 20px; font-family: inherit; resize: none; }
-    button { background: transparent; border: 2px solid #00e5ff; color: #00e5ff; border-radius: 12px; padding: 0.8rem 1.5rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin: 5px; font-size: 1.1rem; }
+    .card { background: #1a2d45; border-radius: 20px; padding: 2rem; box-shadow: 0 0 30px rgba(0,229,255,0.15); max-width: 850px; margin: 0 auto; text-align: center; }
+    /* 入力エリア：ガイドなしのシンプルなテキストエリア */
+    textarea { width: 95%; background: #0a1828; border: 2px solid rgba(0,229,255,0.2); border-radius: 10px; padding: 15px; color: white; fontSize: 1.4rem; outline: none; margin-top: 20px; font-family: inherit; resize: none; line-height: 1.6; }
+    textarea:focus { border-color: #00e5ff; }
+    button { background: transparent; border: 2px solid #00e5ff; color: #00e5ff; border-radius: 12px; padding: 0.8rem 1.5rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin: 5px; }
     button:hover { background: rgba(0,229,255,0.1); transform: scale(1.05); }
     .timer { font-size: 2.5rem; font-weight: 900; color: #ffd166; margin-bottom: 10px; }
-    .target-text { font-size: 1.6rem; text-align: left; line-height: 1.8; color: #7fa8c0; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 10px; margin-bottom: 10px; user-select: none; }
-    .progress { color: #00e5ff; font-size: 1.1rem; margin-bottom: 10px; text-align: right; }
+    /* お手本エリア：色分けや下線を廃止 */
+    .target-text { font-size: 1.5rem; text-align: left; line-height: 1.8; color: #e8f4f8; background: rgba(0,0,0,0.3); padding: 25px; border-radius: 10px; margin-bottom: 10px; user-select: none; word-break: break-all; white-space: pre-wrap; }
+    .status-msg { height: 20px; color: #ffd166; font-size: 0.9rem; margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -27,17 +29,16 @@
     const { useState, useEffect, useRef } = React;
 
     const API_URL = "https://script.google.com/macros/s/AKfycbxsFZeqhUYRrs2_YEH3JOIqCgOzzKchF-4Pwgwb6_G5mlr7nkmR_1yZactSWbvxcgvJ/exec";
-    const LIMIT_SEC = 300; // 5分（300秒）
+    const LIMIT_SEC = 300; 
 
     function App() {
       const [screen, setScreen] = useState("home");
       const [playerName, setName] = useState("");
-      // 問題文（約400文字想定）
-      const [sharedText, setText] = useState("ここに400文字程度の文章を設定してください。現在はテスト用の文章です。タイピングの練習は、毎日少しずつ継続することが上達への一番の近道です。キーボードを見ずに打つタッチタイピングをマスターすると、プログラミングや書類作成のスピードが劇的に向上します。ロボ団のレッスンでも、コードを打つ速さは武器になります。集中して、正確に、そして速く打てるように頑張りましょう。最後まで打ち終わったら、自動的に最初からループします。5分間で合計何文字打てるか挑戦です！");
+      // 教材テキスト（400文字程度を想定）
+      const [sharedText, setText] = useState("ここに教材用の文章（約400文字）を入力してください。タイピングは指の動きを脳に記憶させるスポーツのようなものです。ガイドがない状態でも、正確にキーを叩けるようになることが最終的な目標です。ロボ団のレッスンで身につけた論理的な思考力とともに、このタイピングスキルは君たちの将来において強力な武器となるでしょう。ミスを恐れず、しかし一文字ずつ丁寧に打ち込んでください。5分間、集中力を切らさずに挑戦しましょう。");
       
       const [input, setInput] = useState("");
-      const [totalChars, setTotalChars] = useState(0); // 累計文字数
-      const [totalMistakes, setTotalMistakes] = useState(0); // 累計ミス
+      const [finishedRounds, setFinishedRounds] = useState([]); 
       const [timeLeft, setTimeLeft] = useState(LIMIT_SEC);
       const [isActive, setIsActive] = useState(false);
       const [rankings, setRankings] = useState([]);
@@ -45,7 +46,6 @@
 
       const timerRef = useRef(null);
 
-      // ランキング取得
       const fetchRankings = async () => {
         try {
           const res = await fetch(API_URL);
@@ -56,7 +56,6 @@
 
       useEffect(() => { fetchRankings(); }, []);
 
-      // タイマー処理
       useEffect(() => {
         if (isActive && timeLeft > 0) {
           timerRef.current = setInterval(() => {
@@ -64,18 +63,41 @@
           }, 1000);
         } else if (timeLeft === 0) {
           clearInterval(timerRef.current);
-          finishGame();
+          handleTimeUp();
         }
         return () => clearInterval(timerRef.current);
       }, [isActive, timeLeft]);
 
-      const finishGame = async () => {
+      // 終了時の判定ロジック
+      const calculateStats = (currentInput, completedRounds) => {
+        let totalInputLength = 0;
+        let totalWrongPositions = 0;
+
+        completedRounds.forEach(text => {
+          totalInputLength += text.length;
+          for (let i = 0; i < text.length; i++) {
+            if (text[i] !== sharedText[i]) totalWrongPositions++;
+          }
+        });
+
+        totalInputLength += currentInput.length;
+        for (let i = 0; i < currentInput.length; i++) {
+          if (currentInput[i] !== sharedText[i]) totalWrongPositions++;
+        }
+
+        return { totalInputLength, totalWrongPositions };
+      };
+
+      const handleTimeUp = async () => {
         setIsActive(false);
-        setStatus("🚀 記録を送信中...");
+        setStatus("🚀 記録を保存中...");
+        
+        const { totalInputLength, totalWrongPositions } = calculateStats(input, finishedRounds);
+        
         const result = {
           name: playerName,
-          chars: totalChars + input.length, // 現在入力中の文字も加算
-          mistakes: totalMistakes,
+          chars: totalInputLength,
+          mistakes: totalWrongPositions,
           time: LIMIT_SEC
         };
         
@@ -84,7 +106,6 @@
           await fetchRankings();
           setScreen("result");
         } catch (e) {
-          alert("通信エラー。結果はスプレッドシートに保存されませんでした。");
           setScreen("result");
         } finally {
           setStatus("");
@@ -95,123 +116,15 @@
         if (!isActive) setIsActive(true);
         const val = e.target.value;
 
-        // 入力中のミス判定（表示はしないが、裏でカウント）
-        if (val.length > input.length) {
-          const lastChar = val[val.length - 1];
-          if (lastChar !== sharedText[val.length - 1]) {
-            setTotalMistakes(prev => prev + 1);
-          }
-        }
-
-        // 最後まで打ち終わったか判定
+        // 最後まで行ったらループ
         if (val === sharedText) {
-          setTotalChars(prev => prev + sharedText.length);
-          setInput(""); // 入力欄をクリアしてループ
+          setFinishedRounds([...finishedRounds, val]);
+          setInput(""); 
         } else {
           setInput(val);
         }
       };
 
-      const fmtTime = (sec) => {
-        const m = Math.floor(sec / 60);
-        const s = sec % 60;
-        return `${m}:${s.toString().padStart(2, '0')}`;
-      };
-
       return (
         <div style={{ padding: "2rem" }}>
-          <div style={{ textAlign: "center", marginBottom: "1rem" }}>
-            <div style={{ fontSize: "3rem", animation: "float 3s infinite" }}>🚀</div>
-            <h1 style={{ color: "#00e5ff", fontWeight: 900, margin: "10px 0" }}>5分間タイピング・サバイバル</h1>
-            <div style={{ height: "20px", color: "#ffd166" }}>{status}</div>
-          </div>
-
-          {screen === "home" && (
-            <div className="card">
-              <p>パイロット名を入力して開始（制限時間：5分）</p>
-              <input 
-                style={{ width: "60%", background: "#0a1828", border: "2px solid #00e5ff", borderRadius: "10px", padding: "12px", color: "white", fontSize: "1.2rem", textAlign: "center" }}
-                value={playerName} 
-                onChange={e => setName(e.target.value)} 
-                placeholder="なまえ" 
-              />
-              <div style={{ marginTop: "20px" }}>
-                <button onClick={() => { setTimeLeft(LIMIT_SEC); setScreen("typing"); }} disabled={!playerName}>ミッション開始</button>
-                <button onClick={() => setScreen("ranking")} style={{borderColor: "#ffd166", color: "#ffd166"}}>ランキング</button>
-              </div>
-            </div>
-          )}
-
-          {screen === "typing" && (
-            <div className="card">
-              <div className="timer">{fmtTime(timeLeft)}</div>
-              <div className="progress">現在の合計文字数: {totalChars + input.length}</div>
-              <div className="target-text">
-                {sharedText.split("").map((ch, i) => (
-                  <span key={i} style={{
-                    color: i < input.length ? "#e8f4f8" : "#4a6d8c",
-                    background: i === input.length ? "rgba(0,229,255,0.4)" : "none",
-                    textDecoration: i === input.length ? "underline" : "none"
-                  }}>{ch}</span>
-                ))}
-              </div>
-              <textarea 
-                autoFocus 
-                rows="3"
-                value={input} 
-                onChange={handleType} 
-                placeholder="ここにタイピングしてください（ミスは表示されません）"
-              />
-              <p style={{ color: "#7fa8c0", fontSize: "0.9rem" }}>※最後まで打ち終えると、自動で最初からに戻ります</p>
-            </div>
-          )}
-
-          {screen === "result" && (
-            <div className="card">
-              <h2 style={{ color: "#ffd166" }}>🎉 タイムアップ！</h2>
-              <div style={{ fontSize: "1.5rem", margin: "20px 0", textAlign: "left", display: "inline-block" }}>
-                <p>👤 パイロット: {playerName}</p>
-                <p>⌨️ 合計文字数: <span style={{ color: "#00e5ff", fontWeight: "bold" }}>{totalChars + input.length} 文字</span></p>
-                <p>❌ ミス回数: <span style={{ color: "#ef476f" }}>{totalMistakes} 回</span></p>
-              </div>
-              <br/>
-              <button onClick={() => { setInput(""); setTotalChars(0); setTotalMistakes(0); setTimeLeft(LIMIT_SEC); setScreen("home"); }}>もう一度挑戦</button>
-              <button onClick={() => setScreen("ranking")} style={{borderColor: "#ffd166", color: "#ffd166"}}>ランキングを見る</button>
-            </div>
-          )}
-
-          {screen === "ranking" && (
-            <div className="card">
-              <h2 style={{ color: "#ffd166" }}>🏆 教室ランキング（文字数順）</h2>
-              <div style={{ maxHeight: "400px", overflowY: "auto", textAlign: "left" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ borderBottom: "2px solid #00e5ff", color: "#00e5ff" }}>
-                      <th style={{ padding: "10px" }}>順位</th>
-                      <th>なまえ</th>
-                      <th style={{ textAlign: "right" }}>文字数</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rankings.sort((a,b) => b.chars - a.chars).map((r, i) => (
-                      <tr key={i} style={{ borderBottom: "1px solid #333" }}>
-                        <td style={{ padding: "10px" }}>{i + 1}</td>
-                        <td>{r.name}</td>
-                        <td style={{ textAlign: "right", color: "#00e5ff", fontWeight: "bold" }}>{r.chars}文字</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <button onClick={() => setScreen("home")} style={{ marginTop: "20px" }}>戻る</button>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
-  </script>
-</body>
-</html>
+          <div style={{ textAlign:
