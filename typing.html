@@ -9,34 +9,18 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap">
   <style>
-    /* 画面全体の設定：スクロール禁止 */
     body { margin: 0; padding: 0; background: #0d1b2a; color: #e8f4f8; font-family: 'M PLUS Rounded 1c', sans-serif; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-    
     h1 { font-size: 1.8rem; color: #00e5ff; margin: 10px 0; text-align: center; font-weight: 900; }
-    
     .card { background: #1a2d45; border-radius: 20px; padding: 20px; box-shadow: 0 0 30px rgba(0,229,255,0.15); max-width: 800px; margin: auto; text-align: center; }
-    input.name-input { padding:12px; border-radius:8px; border:"2px solid #00e5ff"; width:60%; textAlign:"center"; fontSize:"1.1rem"; outline:none; background:"#0a1828"; color:"white"; margin-bottom: 20px;}
-    
-    /* ── メインのレイアウト（左右分割） ── */
     .game-container { flex: 1; display: flex; padding: 10px 20px 20px 20px; gap: 20px; overflow: hidden; }
-    
-    /* 左側：問題文エリア */
     .target-pane { flex: 1; background: rgba(0,0,0,0.3); border-radius: 15px; padding: 20px; display: flex; flex-direction: column; overflow: hidden; }
     .timer { font-size: 2.2rem; font-weight: 900; color: #ffd166; text-align: center; margin-bottom: 10px; }
-    
-    /* 問題文テキスト：1画面に収めるためサイズを自動調整 */
-    .target-text { font-size: calc(100vh * 0.018); /* 画面高さに応じたフォントサイズ */ line-height: 1.7; color: #e8f4f8; white-space: pre-wrap; word-break: break-all; overflow: hidden; user-select: none; flex: 1; display: flex; align-items: center; }
-
-    /* 右側：入力エリア */
+    .target-text { font-size: calc(100vh * 0.018); line-height: 1.7; color: #e8f4f8; white-space: pre-wrap; word-break: break-all; overflow-y: auto; user-select: none; flex: 1; }
     .input-pane { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-    textarea { flex: 1; background: #0a1828; border: 2px solid rgba(0,229,255,0.2); border-radius: 15px; padding: 20px; color: white; font-size: calc(100vh * 0.02); font-family: inherit; resize: none; line-height: 1.6; outline: none; transition: border-color 0.2s; }
+    textarea { flex: 1; background: #0a1828; border: 2px solid rgba(0,229,255,0.2); border-radius: 15px; padding: 20px; color: white; font-size: calc(100vh * 0.02); font-family: inherit; resize: none; line-height: 1.6; outline: none; }
     textarea:focus { border-color: #00e5ff; }
-
     button { background: transparent; border: 2px solid #00e5ff; color: #00e5ff; border-radius: 12px; padding: 0.8rem 1.5rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin: 5px; font-size: 1.1rem; }
     button:hover { background: rgba(0,229,255,0.1); transform: scale(1.05); }
-    button:disabled { border-color: #444; color: #444; }
-
-    /* ランキングテーブル */
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { text-align: left; padding: 8px; border-bottom: 1px solid #333; }
     th { color: #00e5ff; }
@@ -50,8 +34,6 @@
 
     const API_URL = "https://script.google.com/macros/s/AKfycbxsFZeqhUYRrs2_YEH3JOIqCgOzzKchF-4Pwgwb6_G5mlr7nkmR_1yZactSWbvxcgvJ/exec";
     const LIMIT_SEC = 300; 
-    
-    // ★ 800文字の問題文（改行・空白無視） ★
     const LESSON_TEXT = `タイピング練習の重要性：未来を切り拓く最強のスキル
 
 　プログラミング教室で学ぶ皆さんに、今一番伝えたいことがあります。それは「タイピングは、君たちのアイデアを形にするための魔法の杖だ」ということです。ロボットを動かすプログラムを書くときも、友達とチャットで会話するときも、将来仕事で書類を作るときも、すべての入り口はキーボードにあります。
@@ -93,35 +75,35 @@
         return () => clearInterval(timerRef.current);
       }, [isActive, timeLeft]);
 
-      // 判定ロジック：改行とスペースを無視して比較
+      // 空白・改行を除去するヘルパー関数
+      const clean = (str) => str.replace(/[\s\n\r]/g, "");
+
       const calculateStats = (currentInput, rounds) => {
-        const cleanTarget = LESSON_TEXT.replace(/[\s\n\r]/g, ""); 
-        let totalChars = 0;
-        let totalMistakes = 0;
-        const allInputs = [...rounds, currentInput];
-        allInputs.forEach(text => {
-          const cleanInput = text.replace(/[\s\n\r]/g, ""); 
-          totalChars += cleanInput.length;
-          for (let i = 0; i < cleanInput.length; i++) {
-            if (cleanInput[i] !== cleanTarget[i]) totalMistakes++;
+        const target = clean(LESSON_TEXT);
+        let len = 0; let err = 0;
+        [...rounds, currentInput].forEach(text => {
+          const inp = clean(text);
+          len += inp.length;
+          for (let i = 0; i < inp.length; i++) {
+            if (inp[i] !== target[i]) err++;
           }
         });
-        return { totalChars, totalMistakes };
+        return { len, err };
       };
 
       const handleTimeUp = async () => {
-        if (isSubmitting) return; 
+        if (isSubmitting) return;
         setIsActive(false);
         setIsSubmitting(true);
         const stats = calculateStats(input, finishedRounds);
         try {
           await fetch(API_URL, { 
             method: "POST", 
-            body: JSON.stringify({ name: playerName, chars: stats.totalChars, mistakes: stats.totalMistakes, time: LIMIT_SEC }) 
+            body: JSON.stringify({ name: playerName, chars: stats.len, mistakes: stats.err, time: LIMIT_SEC }) 
           });
           setScreen("result");
         } catch (e) {
-          alert("送信に失敗しました。画面を更新してやり直してください。");
+          setScreen("result");
         } finally {
           setIsSubmitting(false);
         }
@@ -130,4 +112,46 @@
       const handleType = (e) => {
         if (!isActive) setIsActive(true);
         const val = e.target.value;
-        if (val.replace(/[\s\n\r]/g, "") === LESSON_TEXT.replace(/[\s\n\r
+        if (clean(val) === clean(LESSON_TEXT)) {
+          setFinishedRounds([...finishedRounds, val]);
+          setInput(""); 
+        } else {
+          setInput(val);
+        }
+      };
+
+      if (screen === "home") return (
+        <div style={{display:"flex", alignItems:"center", height:"100vh", justifyContent:"center"}}>
+          <div className="card">
+            <h1>タイピング宇宙船</h1>
+            <p>5分間で何文字打てるか挑戦！</p>
+            <input style={{padding:12, borderRadius:8, border:"2px solid #00e5ff", width:"60%", textAlign:"center", fontSize:"1.1rem", outline:"none", background:"#0a1828", color:"white"}} value={playerName} onChange={e => setName(e.target.value)} placeholder="なまえを入力" />
+            <br/><br/>
+            <button onClick={() => setScreen("typing")} disabled={!playerName}>開始</button>
+            <button onClick={() => setScreen("ranking")} style={{borderColor:"#ffd166", color:"#ffd166"}}>順位</button>
+          </div>
+        </div>
+      );
+
+      if (screen === "typing") return (
+        <div className="game-container">
+          <div className="target-pane">
+            <div className="timer">{Math.floor(timeLeft/60)}:{(timeLeft%60).toString().padStart(2,'0')}</div>
+            <div className="target-text">{LESSON_TEXT}</div>
+          </div>
+          <div className="input-pane">
+            <textarea autoFocus value={input} onChange={handleType} placeholder="ここに入力..." spellCheck="false" />
+            {isSubmitting && <div style={{color:"#ffd166", textAlign:"center"}}>記録を送信中...</div>}
+          </div>
+        </div>
+      );
+
+      if (screen === "result") {
+        const stats = calculateStats(input, finishedRounds);
+        return (
+          <div style={{display:"flex", alignItems:"center", height:"100vh", justifyContent:"center"}}>
+            <div className="card">
+              <h2 style={{color:"#ffd166"}}>🎉 タイムアップ！</h2>
+              <div style={{fontSize:"1.4rem", textAlign:"left", display:"inline-block", margin:"20px 0"}}>
+                <p>👤 なまえ: {playerName}</p>
+                <p>⌨️ 有効文字数: {stats.len} 文字</p>
