@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>タイピング宇宙船 - 詳細診断モード</title>
+  <title>タイピング宇宙船 - 精度重視モード</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -11,29 +11,30 @@
     .game-container { flex:1; display:flex; padding:2vh; gap:2vh; overflow:hidden; }
     .pane { flex:1; background:rgba(26,45,69,0.8); border-radius:15px; padding:2vh; display:flex; flex-direction:column; overflow:hidden; border:1px solid rgba(0,229,255,0.1); }
     .timer { font-size:4vh; color:#ffd166; text-align:center; font-weight:bold; }
-    .target-text { font-size:1.8vh; line-height:1.6; white-space:pre-wrap; flex:1; overflow-y:auto; }
-    textarea { flex:1; background:#0a1828; border:2px solid #333; border-radius:10px; padding:2vh; color:#fff; font-size:2vh; outline:none; resize:none; }
-    .card { background:#1a2d45; padding:3vh; border-radius:20px; text-align:center; margin:auto; width:90%; max-width:600px; max-height:90vh; overflow-y:auto; }
-    .mistake-list { text-align:left; background:rgba(0,0,0,0.3); padding:15px; border-radius:10px; margin:10px 0; font-size:1.4vh; color:#ff4d4d; }
-    button { background:none; border:2px solid #00e5ff; color:#00e5ff; padding:10px 20px; border-radius:10px; cursor:pointer; font-weight:bold; margin:5px; }
-    .stat-box { display:flex; justify-content:space-around; margin-bottom:15px; }
-    .stat-item { background:rgba(0,229,255,0.1); padding:10px; border-radius:10px; width:30%; }
+    .target-text { font-size:1.8vh; line-height:1.6; white-space:pre-wrap; flex:1; overflow-y:auto; user-select:none; }
+    textarea { flex:1; background:#0a1828; border:2px solid #333; border-radius:10px; padding:2vh; color:#fff; font-size:2vh; outline:none; resize:none; font-family:inherit; }
+    .card { background:#1a2d45; padding:4vh; border-radius:20px; text-align:center; margin:auto; width:80%; max-width:500px; }
+    input { padding:1.5vh; width:80%; border-radius:8px; border:1px solid #00e5ff; background:#0a1828; color:#fff; text-align:center; font-size:2vh; }
+    button { background:none; border:2px solid #00e5ff; color:#00e5ff; padding:12px 25px; border-radius:10px; cursor:pointer; font-weight:bold; margin-top:20px; }
+    .stat-row { display:flex; justify-content:space-around; margin:20px 0; }
+    .stat-box { background:rgba(0,229,255,0.1); padding:15px; border-radius:10px; width:40%; }
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-  const { useState, useEffect, useRef } = React;
+  const { useState, useEffect } = React;
   const API_URL = "https://script.google.com/macros/s/AKfycbxOt3nJksKuLHXd4wFAK9L1gOTOQWJAnc_WS6l4K4Ma4csnzBvqo1A6SM5cwu6UfYYJ/exec";
+  
   const LESSON = `タイピング練習：未来を拓く「指先の技術」
 
-プログラミング教室で皆さんが取り組んでいるタイピングは、単に文字を打つ作業ではありません。それは、自分の考えをデジタルの世界へ伝えるための「一番大切な言葉」です。
+　プログラミング教室で皆さんが取り組んでいるタイピングは、単に文字を打つ作業ではありません。それは、自分の考えをデジタルの世界へ伝えるための「一番大切な言葉」です。
 
-なぜタイピングを練習するのでしょうか。それは、皆さんが将来、素晴らしいゲームを作ったり、ロボットを自由に操ったりするとき、タイピングが「壁」にならないようにするためです。キーボードを見ながら一文字ずつ探していると、せっかくの素晴らしいアイデアが途切れてしまいます。しかし、画面だけを見てスラスラと打けるようになれば、皆さんの思考はそのまま形になります。
+　なぜタイピングを練習するのでしょうか。それは、皆さんが将来、素晴らしいゲームを作ったり、ロボットを自由に操ったりするとき、タイピングが「壁」にならないようにするためです。キーボードを見ながら一文字ずつ探していると、せっ興味深いアイデアが途切れてしまいます。しかし、画面だけを見てスラスラと打けるようになれば、皆さんの思考はそのまま形になります。
 
-練習のコツは、速さよりも「正確さ」です。一度間違えると、バックスペースキーで戻って打ち直すという無駄な時間が生まれます。急がば回れ。まずはホームポジションを大切に、一文字ずつ確実に打ち込んでいきましょう。
+　練習のコツは、速さよりも「正確さ」です。一度間違えると、バックスペースキーで戻って打ち直すという無駄な時間が生まれます。急がば回れ。まずはホームポジションを大切に、一文字ずつ確実に打ち込んでいきましょう。
 
-今日、オンライン上に記録される皆さんのスコアは、努力の足跡です。昨日の自分より一文字でも多く、あるいは一箇所でもミスを少なく。その小さな積み重ねが、将来、世界を驚かせるクリエイターへの第一歩となります。さあ、全集中でキーボードに向き合い、自己ベストを目指してミッションを開始しましょう！`.trim();
+　今日、オンライン上に記録される皆さんのスコアは、努力の足跡です。昨日の自分より一文字でも多く、あるいは一箇所でもミスを少なく。その小さな積み重ねが、将来、世界を驚かせるクリエイターへの第一歩となります。さあ、全集中でキーボードに向き合い、自己ベストを目指してミッションを開始しましょう！`.trim();
 
   function App() {
     const [screen, setScreen] = useState("home");
@@ -43,7 +44,7 @@
     const [time, setTime] = useState(300);
     const [active, setActive] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [analysis, setAnalysis] = useState({ total:0, mistakes:[], charCount:0 });
+    const [result, setResult] = useState({ chars:0, mistakes:0 });
 
     useEffect(() => {
       let timer;
@@ -55,37 +56,35 @@
     const clean = (s) => s.replace(/[\s\n\r]/g, "");
 
     const finish = async () => {
-      if (isSubmitting) return; // 二重送信防止
+      if (isSubmitting) return;
       setIsSubmitting(true);
       setActive(false);
 
       const targetClean = clean(LESSON);
-      let totalErr = 0;
       let totalChars = 0;
-      let mistakeDetails = [];
+      let totalMistakes = 0;
 
-      [...rounds, input].forEach((text, roundIdx) => {
+      [...rounds, input].forEach(text => {
         const inpClean = clean(text);
         totalChars += inpClean.length;
+        
+        // ズレを考慮した単純比較ロジック
         for (let i = 0; i < inpClean.length; i++) {
-          if (inpClean[i] !== targetClean[i]) {
-            totalErr++;
-            if (mistakeDetails.length < 10) { // 上位10個まで表示
-              mistakeDetails.push(`周回${roundIdx+1}: 「${targetClean[i]}」のところで「${inpClean[i]}」と入力`);
-            }
+          if (i < targetClean.length && inpClean[i] !== targetClean[i]) {
+            totalMistakes++;
           }
         }
       });
 
-      setAnalysis({ total: totalErr, mistakes: mistakeDetails, charCount: totalChars });
+      setResult({ chars: totalChars, mistakes: totalMistakes });
 
       try {
         await fetch(API_URL, {
           method: "POST",
-          mode: "no-cors", // GASのCORS対策
-          body: JSON.stringify({ name, chars: totalChars, mistakes: totalErr, time: 300 })
+          mode: "no-cors",
+          body: JSON.stringify({ name, chars: totalChars, mistakes: totalMistakes, time: 300 })
         });
-      } catch (e) { console.error("送信エラー:", e); }
+      } catch (e) {}
       setScreen("result");
     };
 
@@ -116,24 +115,12 @@
 
     return (
       <div className="card">
-        <h2 style={{color:"#00e5ff"}}>📊 ミッション結果報告</h2>
-        <div className="stat-box">
-          <div className="stat-item"><div>文字数</div><div style={{fontSize:"1.5rem", fontWeight:"bold"}}>{analysis.charCount}</div></div>
-          <div className="stat-item"><div>ミス数</div><div style={{fontSize:"1.5rem", fontWeight:"bold", color:"#ff4d4d"}}>{analysis.total}</div></div>
-          <div className="stat-item"><div>正確性</div><div style={{fontSize:"1.5rem", fontWeight:"bold"}}>{analysis.charCount > 0 ? Math.floor((1 - analysis.total/analysis.charCount)*100) : 0}%</div></div>
+        <h2 style={{color:"#00e5ff"}}>🏁 タイムアップ！</h2>
+        <div className="stat-row">
+          <div className="stat-box"><div>入力文字数</div><div style={{fontSize:"2rem", fontWeight:"bold"}}>{result.chars}</div></div>
+          <div className="stat-box"><div>ミス数</div><div style={{fontSize:"2rem", fontWeight:"bold", color:"#ff4d4d"}}>{result.mistakes}</div></div>
         </div>
-        
-        {analysis.mistakes.length > 0 && (
-          <>
-            <div style={{textAlign:"left", fontWeight:"bold", marginBottom:5}}>⚠️ ミスした箇所の分析:</div>
-            <div className="mistake-list">
-              {analysis.mistakes.map((m, i) => <div key={i}>• {m}</div>)}
-              {analysis.total > 10 && <div>...他 {analysis.total - 10} 箇所のミス</div>}
-            </div>
-          </>
-        )}
-        
-        <p style={{fontSize:"0.8rem", color:"#888"}}>※データは自動でスプレッドシートに保存されました。</p>
+        <p>記録はオンラインに保存されました。</p>
         <button onClick={() => location.reload()}>トップへ戻る</button>
       </div>
     );
