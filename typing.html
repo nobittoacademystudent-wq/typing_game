@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>タイピング宇宙船 - オンライン成長記録</title>
+  <title>タイピング宇宙船 - 2周目対応・安定版</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -12,23 +12,32 @@
     .game-container { flex: 1; display: flex; padding: 2vh; gap: 2vh; overflow: hidden; }
     .pane { flex: 1; background: rgba(26, 45, 69, 0.8); border-radius: 15px; padding: 2vh; display: flex; flex-direction: column; overflow: hidden; }
     .timer { font-size: 3.5vh; color: #ffd166; text-align: center; font-weight: bold; }
-    .target-text { font-size: 1.8vh; line-height: 1.6; white-space: pre-wrap; flex: 1; overflow: hidden; }
-    textarea { flex: 1; background: #0a1828; border: 2px solid #333; border-radius: 10px; padding: 2vh; color: #fff; font-size: 2vh; outline: none; resize: none; }
+    .round-indicator { font-size: 1.5vh; color: #00e5ff; text-align: center; margin-bottom: 5px; }
+    .target-text { font-size: 1.8vh; line-height: 1.6; white-space: pre-wrap; flex: 1; overflow-y: auto; user-select: none; }
+    textarea { flex: 1; background: #0a1828; border: 2px solid #333; border-radius: 10px; padding: 2vh; color: #fff; font-size: 2.1vh; outline: none; resize: none; font-family: inherit; }
     .card { background:#1a2d45; padding:4vh; border-radius:20px; text-align:center; margin:auto; width:80%; max-width:500px; }
-    input { padding:1.5vh; width:80%; border-radius:8px; border:1px solid #00e5ff; background:#0a1828; color:#fff; font-size:2vh; margin-bottom:1vh; text-align:center; }
-    .best-badge { color: #ffd166; font-size: 1.8vh; margin: 10px 0; padding: 10px; background: rgba(255,209,102,0.1); border-radius: 5px; }
-    button { background:none; border:2px solid #00e5ff; color:#00e5ff; padding:1.2vh 2.5vh; border-radius:10px; cursor:pointer; font-weight:bold; }
+    input { padding:1.5vh; width:80%; border-radius:8px; border:1px solid #00e5ff; background:#0a1828; color:#fff; text-align:center; font-size:2vh; }
+    button { background:none; border:2px solid #00e5ff; color:#00e5ff; padding:1.2vh 2.5vh; border-radius:10px; cursor:pointer; font-weight:bold; margin-top: 10px; }
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-  const { useState, useEffect } = React;
+  const { useState, useEffect, useRef } = React;
   const API_URL = "https://script.google.com/macros/s/AKfycbxOt3nJksKuLHXd4wFAK9L1gOTOQWJAnc_WS6l4K4Ma4csnzBvqo1A6SM5cwu6UfYYJ/exec";
-  const LESSON = `プログラミング教室で皆さんが取り組んでいるタイピングは、単に文字を打つ作業ではありません。それは、自分の考えをデジタルの世界へ伝えるための「一番大切な言葉」です。
-なぜタイピングを練習するのでしょうか。それは、皆さんが将来、素晴らしいゲームを作ったり、ロボットを自由に操ったりするとき、タイピングが「壁」にならないようにするためです。キーボードを見ながら一文字ずつ探していると、せっかくの素晴らしいアイデアが途切れてしまいます。しかし、画面だけを見てスラスラと打てるようになれば、皆さんの思考はそのまま形になります。
-練習のコツは、速さよりも「正確さ」です。一度間違えると、バックスペースキーで戻って打ち直すという無駄な時間が生まれます。急がば回れ。まずはホームポジションを大切に、一文字ずつ確実に打ち込んでいきましょう。
-今日、オンライン上に記録される皆さんのスコアは、努力の足跡です。昨日の自分より一文字でも多く、あるいは一箇所でもミスを少なく。その小さな積み重ねが、将来、世界を驚かせるクリエイターへの第一歩となります。さあ、全集中でミッションを開始しましょう！`;
+  
+  // 500文字の問題文（前後の空白を自動削除するようにしています）
+  const LESSON_RAW = `タイピング練習：未来を拓く「指先の技術」
+
+　プログラミング教室で皆さんが取り組んでいるタイピングは、単に文字を打つ作業ではありません。それは、自分の考えをデジタルの世界へ伝えるための「一番大切な言葉」です。
+
+　なぜタイピングを練習するのでしょうか。それは、皆さんが将来、素晴らしいゲームを作ったり、ロボットを自由に操ったりするとき、タイピングが「壁」にならないようにするためです。キーボードを見ながら一文字ずつ探していると、せっかくの素晴らしいアイデアが途切れてしまいます。しかし、画面だけを見てスラスラと打けるようになれば、皆さんの思考はそのまま形になります。
+
+　練習のコツは、速さよりも「正確さ」です。一度間違えると、バックスペースキーで戻って打ち直すという無駄な時間が生まれます。急がば回れ。まずはホームポジションを大切に、一文字ずつ確実に打ち込んでいきましょう。
+
+　今日、オンライン上に記録される皆さんのスコアは、努力の足跡です。昨日の自分より一文字でも多く、あるいは一箇所でもミスを少なく。その小さな積み重ねが、将来、世界を驚かせるクリエイターへの第一歩となります。さあ、全集中でキーボードに向き合い、自己ベストを目指してミッションを開始しましょう！`;
+
+  const LESSON = LESSON_RAW.trim(); // 前後の余計な改行をカット
 
   function App() {
     const [screen, setScreen] = useState("home");
@@ -37,76 +46,94 @@
     const [rounds, setRounds] = useState([]);
     const [time, setTime] = useState(300);
     const [active, setActive] = useState(false);
-    const [rankings, setRankings] = useState([]);
-    const [personalBest, setPersonalBest] = useState(null);
 
-    // 全データから個人のベストを抽出
-    const fetchAndSetBest = async (targetName) => {
-      try {
-        const res = await fetch(API_URL);
-        const allData = await res.json();
-        setRankings(allData);
-        const myData = allData.filter(r => r.name === targetName);
-        if (myData.length > 0) {
-          const best = myData.reduce((prev, curr) => (prev.chars > curr.chars) ? prev : curr);
-          setPersonalBest(best);
-        } else {
-          setPersonalBest(null);
-        }
-      } catch (e) { console.error(e); }
-    };
+    useEffect(() => {
+      let timer;
+      if (active && time > 0) {
+        timer = setInterval(() => setTime(t => t - 1), 1000);
+      } else if (time === 0 && active) {
+        setActive(false);
+        finish();
+      }
+      return () => clearInterval(timer);
+    }, [active, time]);
 
+    // 判定用：空白・改行をすべて消す
     const clean = (s) => s.replace(/[\s\n\r]/g, "");
 
     const finish = async () => {
-      setActive(false);
       const targetClean = clean(LESSON);
-      let len = 0; let err = 0;
+      let totalLen = 0; let totalErr = 0;
+
       [...rounds, input].forEach(text => {
-        const inp = clean(text); len += inp.length;
-        for (let i = 0; i < inp.length; i++) if (inp[i] !== targetClean[i]) err++;
+        const inpClean = clean(text);
+        totalLen += inpClean.length;
+        // 入力した文字数分だけループ
+        for (let i = 0; i < inpClean.length; i++) {
+          if (inpClean[i] !== targetClean[i]) totalErr++;
+        }
       });
-      await fetch(API_URL, { method: "POST", body: JSON.stringify({ name, chars: len, mistakes: err, time: 300 }) });
+
+      try {
+        await fetch(API_URL, { 
+          method: "POST", 
+          body: JSON.stringify({ name, chars: totalLen, mistakes: totalErr, time: 300 }) 
+        });
+      } catch(e) {}
       setScreen("result");
+    };
+
+    const handleInput = (e) => {
+      const val = e.target.value;
+      
+      // 1文字目が打たれたら即タイマーON
+      if (!active && val.length > 0) {
+        setActive(true);
+      }
+
+      setInput(val);
+
+      // 2周目突入判定（空白を除去して一致するか）
+      if (clean(val) === clean(LESSON)) {
+        setRounds(prev => [...prev, val]);
+        setInput(""); // 入力欄をクリアして2周目へ
+      }
     };
 
     if (screen === "home") return (
       <div className="card">
         <h1>🚀 タイピング宇宙船</h1>
-        <input 
-          value={name} 
-          onChange={e => setName(e.target.value)} 
-          onBlur={() => fetchAndSetBest(name)} 
-          placeholder="なまえを入力して外をクリック" 
-        />
-        {personalBest && (
-          <div className="best-badge">
-            🌟 オンライン上の自己ベスト: {personalBest.chars}文字
-          </div>
-        )}
-        <br/><br/>
-        <button onClick={() => { fetchAndSetBest(name); setScreen("typing"); }} disabled={!name}>ミッション開始</button>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="なまえを入力" /><br/>
+        <button onClick={() => setScreen("typing")} disabled={!name}>ミッション開始</button>
       </div>
     );
 
     if (screen === "typing") return (
-      <div className="game-container">
-        <div className="pane">
-          <div className="timer">{Math.floor(time/60)}:{(time%60).toString().padStart(2,'0')}</div>
-          <div className="target-text">{LESSON}</div>
+      <>
+        <header><h1>MISSION: タイピング練習</h1></header>
+        <div className="game-container">
+          <div className="pane">
+            <div className="timer">{Math.floor(time/60)}:{(time%60).toString().padStart(2,'0')}</div>
+            <div className="round-indicator">{rounds.length + 1}周目に突入中</div>
+            <div className="target-text">{LESSON}</div>
+          </div>
+          <div className="pane" style={{padding:0}}>
+            <textarea 
+              autoFocus 
+              value={input} 
+              onChange={handleInput} 
+              placeholder="ここに入力..." 
+              spellCheck="false" 
+            />
+          </div>
         </div>
-        <textarea autoFocus value={input} onChange={e => {
-          if(!active) setActive(true);
-          if(clean(e.target.value) === clean(LESSON)) { setRounds([...rounds, e.target.value]); setInput(""); }
-          else setInput(e.target.value);
-        }} />
-      </div>
+      </>
     );
 
     return (
       <div className="card">
-        <h2>🎉 記録を保存しました</h2>
-        <button onClick={() => location.reload()}>戻る</button>
+        <h2>🎉 タイムアップ！</h2>
+        <button onClick={() => location.reload()}>トップへ戻る</button>
       </div>
     );
   }
