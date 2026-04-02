@@ -2,22 +2,25 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>タイピング宇宙船 - 精度重視モード</title>
+  <title>タイピング宇宙船 - データ分析モード</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     body { margin:0; background:#0d1b2a; color:#eee; font-family:sans-serif; overflow:hidden; height:100vh; display:flex; flex-direction:column; }
+    header { height: 7vh; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #00e5ff; }
     .game-container { flex:1; display:flex; padding:2vh; gap:2vh; overflow:hidden; }
     .pane { flex:1; background:rgba(26,45,69,0.8); border-radius:15px; padding:2vh; display:flex; flex-direction:column; overflow:hidden; border:1px solid rgba(0,229,255,0.1); }
     .timer { font-size:4vh; color:#ffd166; text-align:center; font-weight:bold; }
     .target-text { font-size:1.8vh; line-height:1.6; white-space:pre-wrap; flex:1; overflow-y:auto; user-select:none; }
-    textarea { flex:1; background:#0a1828; border:2px solid #333; border-radius:10px; padding:2vh; color:#fff; font-size:2vh; outline:none; resize:none; font-family:inherit; }
-    .card { background:#1a2d45; padding:4vh; border-radius:20px; text-align:center; margin:auto; width:80%; max-width:500px; }
-    input { padding:1.5vh; width:80%; border-radius:8px; border:1px solid #00e5ff; background:#0a1828; color:#fff; text-align:center; font-size:2vh; }
-    button { background:none; border:2px solid #00e5ff; color:#00e5ff; padding:12px 25px; border-radius:10px; cursor:pointer; font-weight:bold; margin-top:20px; }
-    .stat-row { display:flex; justify-content:space-around; margin:20px 0; }
-    .stat-box { background:rgba(0,229,255,0.1); padding:15px; border-radius:10px; width:40%; }
+    textarea { flex:1; background:#0a1828; border:2px solid #333; border-radius:10px; padding:2vh; color:#fff; font-size:2.1vh; outline:none; resize:none; font-family:inherit; }
+    .card { background:#1a2d45; padding:4vh; border-radius:20px; text-align:center; margin:auto; width:85%; max-width:550px; box-shadow:0 0 30px rgba(0,0,0,0.5); }
+    input { padding:1.5vh; width:80%; border-radius:8px; border:1px solid #00e5ff; background:#0a1828; color:#fff; text-align:center; font-size:2vh; margin-bottom:1vh; }
+    button { background:none; border:2px solid #00e5ff; color:#00e5ff; padding:1.2vh 2.5vh; border-radius:10px; cursor:pointer; font-weight:bold; font-size:1.8vh; margin:5px; }
+    button:hover { background:rgba(0,229,255,0.1); }
+    table { width:100%; border-collapse:collapse; margin-top:10px; font-size:1.6vh; }
+    th, td { padding:1vh; border-bottom:1px solid #333; text-align:center; }
+    .highlight { color: #00e5ff; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -25,12 +28,11 @@
 <script type="text/babel">
   const { useState, useEffect } = React;
   const API_URL = "https://script.google.com/macros/s/AKfycbxOt3nJksKuLHXd4wFAK9L1gOTOQWJAnc_WS6l4K4Ma4csnzBvqo1A6SM5cwu6UfYYJ/exec";
-  
   const LESSON = `タイピング練習：未来を拓く「指先の技術」
 
 　プログラミング教室で皆さんが取り組んでいるタイピングは、単に文字を打つ作業ではありません。それは、自分の考えをデジタルの世界へ伝えるための「一番大切な言葉」です。
 
-　なぜタイピングを練習するのでしょうか。それは、皆さんが将来、素晴らしいゲームを作ったり、ロボットを自由に操ったりするとき、タイピングが「壁」にならないようにするためです。キーボードを見ながら一文字ずつ探していると、せっ興味深いアイデアが途切れてしまいます。しかし、画面だけを見てスラスラと打けるようになれば、皆さんの思考はそのまま形になります。
+　なぜタイピングを練習するのでしょうか。それは、皆さんが将来、素晴らしいゲームを作ったり、ロボットを自由に操ったりするとき、タイピングが「壁」にならないようにするためです。キーボードを見ながら一文字ずつ探していると、せっかくの素晴らしいアイデアが途切れてしまいます。しかし、画面だけを見てスラスラと打けるようになれば、皆さんの思考はそのまま形になります。
 
 　練習のコツは、速さよりも「正確さ」です。一度間違えると、バックスペースキーで戻って打ち直すという無駄な時間が生まれます。急がば回れ。まずはホームポジションを大切に、一文字ずつ確実に打ち込んでいきましょう。
 
@@ -44,7 +46,20 @@
     const [time, setTime] = useState(300);
     const [active, setActive] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [result, setResult] = useState({ chars:0, mistakes:0 });
+    const [stats, setStats] = useState({ top5: [], myHistory: [] });
+
+    // 起動時＆画面切り替え時にデータを取得
+    const loadData = async () => {
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        // 全体のトップ5（文字数順）
+        const top5 = [...data].sort((a,b) => b.chars - a.chars).slice(0, 5);
+        // 自分の履歴（新しい順に3件）
+        const history = data.filter(r => r.name === name).reverse().slice(0, 3);
+        setStats({ top5, myHistory: history });
+      } catch (e) { console.error("データ取得失敗"); }
+    };
 
     useEffect(() => {
       let timer;
@@ -59,31 +74,14 @@
       if (isSubmitting) return;
       setIsSubmitting(true);
       setActive(false);
-
       const targetClean = clean(LESSON);
-      let totalChars = 0;
-      let totalMistakes = 0;
-
+      let totalChars = 0; let totalErr = 0;
       [...rounds, input].forEach(text => {
-        const inpClean = clean(text);
-        totalChars += inpClean.length;
-        
-        // ズレを考慮した単純比較ロジック
-        for (let i = 0; i < inpClean.length; i++) {
-          if (i < targetClean.length && inpClean[i] !== targetClean[i]) {
-            totalMistakes++;
-          }
-        }
+        const inp = clean(text); totalChars += inp.length;
+        for (let i = 0; i < inp.length; i++) if (i < targetClean.length && inp[i] !== targetClean[i]) totalErr++;
       });
-
-      setResult({ chars: totalChars, mistakes: totalMistakes });
-
       try {
-        await fetch(API_URL, {
-          method: "POST",
-          mode: "no-cors",
-          body: JSON.stringify({ name, chars: totalChars, mistakes: totalMistakes, time: 300 })
-        });
+        await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ name, chars: totalChars, mistakes: totalErr, time: 300 }) });
       } catch (e) {}
       setScreen("result");
     };
@@ -92,7 +90,31 @@
       <div className="card">
         <h1>🚀 タイピング宇宙船</h1>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="なまえを入力" /><br/>
-        <button onClick={() => setScreen("typing")} disabled={!name}>ミッション開始</button>
+        <button onClick={() => setScreen("typing")} disabled={!name}>開始</button>
+        <button onClick={() => { loadData(); setScreen("data"); }} disabled={!name} style={{borderColor:"#ffd166", color:"#ffd166"}}>記録を見る</button>
+      </div>
+    );
+
+    if (screen === "data") return (
+      <div className="card" style={{width:"90%", maxWidth:"600px"}}>
+        <h2 style={{color:"#ffd166"}}>📊 ミッション・ログ</h2>
+        <div style={{display:"flex", gap:"15px"}}>
+          <div style={{flex:1}}>
+            <p className="highlight">🏆 全体TOP5</p>
+            <table>
+              <thead><tr><th>順</th><th>名</th><th>文字</th></tr></thead>
+              <tbody>{stats.top5.map((r,i)=><tr key={i}><td>{i+1}</td><td>{r.name}</td><td>{r.chars}</td></tr>)}</tbody>
+            </table>
+          </div>
+          <div style={{flex:1}}>
+            <p className="highlight">📈 自分の直近3回</p>
+            <table>
+              <thead><tr><th>文字</th><th>ミス</th></tr></thead>
+              <tbody>{stats.myHistory.map((r,i)=><tr key={i}><td>{r.chars}</td><td>{r.mistakes}</td></tr>)}</tbody>
+            </table>
+          </div>
+        </div>
+        <button onClick={() => setScreen("home")} style={{marginTop:20}}>戻る</button>
       </div>
     );
 
@@ -105,9 +127,8 @@
         <textarea autoFocus value={input} spellCheck="false"
           onChange={e => {
             if(!active && e.target.value.length > 0) setActive(true);
-            const val = e.target.value;
-            if(clean(val) === clean(LESSON)) { setRounds([...rounds, val]); setInput(""); }
-            else setInput(val);
+            if(clean(e.target.value) === clean(LESSON)) { setRounds([...rounds, e.target.value]); setInput(""); }
+            else setInput(e.target.value);
           }} 
         />
       </div>
@@ -116,10 +137,6 @@
     return (
       <div className="card">
         <h2 style={{color:"#00e5ff"}}>🏁 タイムアップ！</h2>
-        <div className="stat-row">
-          <div className="stat-box"><div>入力文字数</div><div style={{fontSize:"2rem", fontWeight:"bold"}}>{result.chars}</div></div>
-          <div className="stat-box"><div>ミス数</div><div style={{fontSize:"2rem", fontWeight:"bold", color:"#ff4d4d"}}>{result.mistakes}</div></div>
-        </div>
         <p>記録はオンラインに保存されました。</p>
         <button onClick={() => location.reload()}>トップへ戻る</button>
       </div>
