@@ -2,25 +2,45 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>タイピング宇宙船 - リアルタイム分析版</title>
+  <title>タイピング宇宙船 - 自動調整＆ログ機能版</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
+    :root { --main-cyan: #00e5ff; --gold: #ffd166; }
     body { margin:0; background:#0d1b2a; color:#eee; font-family:sans-serif; overflow:hidden; height:100vh; display:flex; flex-direction:column; }
+    
+    /* 文字サイズの自動調整：画面の高さに合わせて 1.5vh〜2.2vh の間で変動 */
+    .target-text { 
+      font-size: clamp(14px, 1.85vh, 22px); 
+      line-height: 1.6; 
+      white-space: pre-wrap; 
+      flex: 1; 
+      overflow-y: auto; 
+      user-select: none;
+      padding-right: 10px;
+    }
+
     .game-container { flex:1; display:flex; padding:2vh; gap:2vh; overflow:hidden; }
     .pane { flex:1; background:rgba(26,45,69,0.8); border-radius:15px; padding:2vh; display:flex; flex-direction:column; overflow:hidden; border:1px solid rgba(0,229,255,0.1); }
-    .timer { font-size:4vh; color:#ffd166; text-align:center; font-weight:bold; }
-    .target-text { font-size:1.8vh; line-height:1.6; white-space:pre-wrap; flex:1; overflow-y:auto; user-select:none; }
-    textarea { flex:1; background:#0a1828; border:2px solid #333; border-radius:10px; padding:2vh; color:#fff; font-size:2.1vh; outline:none; resize:none; font-family:inherit; }
-    .card { background:#1a2d45; padding:4vh; border-radius:20px; text-align:center; margin:auto; width:90%; max-width:650px; max-height:95vh; overflow-y:auto; box-shadow:0 0 30px rgba(0,0,0,0.5); }
-    input { padding:1.5vh; width:70%; border-radius:8px; border:1px solid #00e5ff; background:#0a1828; color:#fff; text-align:center; font-size:2vh; margin-bottom:1vh; }
-    button { background:none; border:2px solid #00e5ff; color:#00e5ff; padding:1.2vh 2.5vh; border-radius:10px; cursor:pointer; font-weight:bold; font-size:1.8vh; margin:5px; }
-    button:hover { background:rgba(0,229,255,0.1); }
+    .timer { font-size:4vh; color:var(--gold); text-align:center; font-weight:bold; margin-bottom: 1vh; }
+    
+    textarea { 
+      flex:1; background:#0a1828; border:2px solid #333; border-radius:10px; padding:2vh; color:#fff; 
+      font-size: clamp(16px, 2.1vh, 24px); outline:none; resize:none; font-family:inherit; 
+    }
+    
+    .card { background:#1a2d45; padding:4vh; border-radius:20px; text-align:center; margin:auto; width:90%; max-width:650px; max-height:90vh; overflow-y:auto; box-shadow:0 0 30px rgba(0,0,0,0.5); }
+    input { padding:1.5vh; width:70%; border-radius:8px; border:1px solid var(--main-cyan); background:#0a1828; color:#fff; text-align:center; font-size:2vh; margin-bottom:1vh; }
+    
+    button { background:none; border:2px solid var(--main-cyan); color:var(--main-cyan); padding:1.2vh 2.5vh; border-radius:10px; cursor:pointer; font-weight:bold; font-size:1.8vh; margin:5px; transition: 0.2s; }
+    button:hover { background:rgba(0,229,255,0.1); transform: scale(1.05); }
+    button:disabled { border-color: #444; color: #444; cursor: not-allowed; }
+
     table { width:100%; border-collapse:collapse; margin-top:10px; font-size:1.6vh; background:rgba(0,0,0,0.2); }
     th, td { padding:0.8vh; border-bottom:1px solid #333; text-align:center; }
-    .highlight { color: #00e5ff; font-weight: bold; font-size: 2vh; margin: 10px 0; }
-    .my-result-box { display:flex; justify-content:space-around; background:rgba(0,229,255,0.1); padding:15px; border-radius:15px; margin-bottom:20px; border:1px solid #00e5ff; }
+    .highlight { color: var(--main-cyan); font-weight: bold; font-size: 2vh; margin: 10px 0; }
+    .my-result-box { display:flex; justify-content:space-around; background:rgba(0,229,255,0.1); padding:15px; border-radius:15px; margin-bottom:20px; border:1px solid var(--main-cyan); }
   </style>
 </head>
 <body>
@@ -32,7 +52,7 @@
 
 　プログラミング教室で皆さんが取り組んでいるタイピングは、単に文字を打つ作業ではありません。それは、自分の考えをデジタルの世界へ伝えるための「一番大切な言葉」です。
 
-　なぜタイピングを練習するのでしょうか。それは、皆さんが将来、素晴らしいゲームを作ったり、ロボットを自由に操ったりするとき、タイピングが「壁」にならないようにするためです。キーボードを見ながら一文字ずつ探していると、せっかくの素晴らしいアイデアが途切れてしまいます。しかし、画面だけを見てスラスラと打てるようになれば、皆さんの思考はそのまま形になります。
+　なぜタイピングを練習するのでしょうか。それは、皆さんが将来、素晴らしいゲームを作ったり、ロボットを自由に操ったりするとき、タイピングが「壁」にならないようにするためです。キーボードを見ながら一文字ずつ探していると、せっかくの素晴らしいアイデアが途切れてしまいます。しかし、画面だけを見てスラスラと打けるようになれば、皆さんの思考はそのまま形になります。
 
 　練習のコツは、速さよりも「正確さ」です。一度間違えると、バックスペースキーで戻って打ち直すという無駄な時間が生まれます。急がば回れ。まずはホームポジションを大切に、一文字ずつ確実に打ち込んでいきましょう。
 
@@ -46,7 +66,14 @@
     const [time, setTime] = useState(300);
     const [active, setActive] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [finalStats, setFinalStats] = useState({ current: {}, top5: [], history: [] });
+    const [allData, setAllData] = useState([]);
+
+    // 起動時およびトップに戻った際にデータを予習しておく
+    useEffect(() => {
+      if (screen === "home" || screen === "data") {
+        fetch(API_URL).then(r => r.json()).then(d => setAllData(Array.isArray(d) ? d : []));
+      }
+    }, [screen]);
 
     useEffect(() => {
       let timer;
@@ -61,32 +88,23 @@
       if (isSubmitting) return;
       setIsSubmitting(true);
       setActive(false);
-
       const targetClean = clean(LESSON);
       let totalChars = 0; let totalErr = 0;
       [...rounds, input].forEach(text => {
         const inp = clean(text); totalChars += inp.length;
         for (let i = 0; i < inp.length; i++) if (i < targetClean.length && inp[i] !== targetClean[i]) totalErr++;
       });
-
-      const currentResult = { name, chars: totalChars, mistakes: totalErr };
-
+      const resObj = { name, chars: totalChars, mistakes: totalErr };
       try {
-        // 1. データを送信
-        await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(currentResult) });
-        
-        // 2. 送信完了後、少し待ってから最新データを取得
-        setTimeout(async () => {
-          const res = await fetch(API_URL);
-          const allData = await res.json();
-          const top5 = [...allData].sort((a,b) => b.chars - a.chars).slice(0, 5);
-          const history = allData.filter(r => r.name === name).reverse().slice(0, 3);
-          setFinalStats({ current: currentResult, top5, history });
-          setScreen("result");
-        }, 1000); 
-      } catch (e) {
+        await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(resObj) });
         setScreen("result");
-      }
+      } catch (e) { setScreen("result"); }
+    };
+
+    const getStats = (targetName) => {
+      const top5 = [...allData].sort((a,b) => b.chars - a.chars).slice(0, 5);
+      const history = allData.filter(r => r.name === (targetName || name)).reverse().slice(0, 3);
+      return { top5, history };
     };
 
     if (screen === "home") return (
@@ -94,8 +112,44 @@
         <h1>🚀 タイピング宇宙船</h1>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="なまえを入力" /><br/>
         <button onClick={() => setScreen("typing")} disabled={!name}>ミッション開始</button>
+        <button onClick={() => setScreen("data")} disabled={!name} style={{borderColor:"var(--gold)", color:"var(--gold)"}}>記録を見る</button>
       </div>
     );
+
+    const DataView = ({title, isResult}) => {
+      const stats = getStats(name);
+      return (
+        <div className="card">
+          <h2 style={{color:"var(--main-cyan)", margin:"0 0 20px 0"}}>{title}</h2>
+          {isResult && (
+            <div className="my-result-box">
+              <div><small>今回の文字数</small><br/><strong>{[...rounds, input].reduce((a,b)=>a+clean(b).length, 0)}</strong></div>
+              <div><small>保存完了</small><br/><span style={{fontSize:"1.2vh"}}>OK</span></div>
+            </div>
+          )}
+          <div style={{display:"flex", gap:"15px", textAlign:"left"}}>
+            <div style={{flex:1}}>
+              <div className="highlight">🏆 TOP 5</div>
+              <table>
+                <thead><tr><th>位</th><th>名</th><th>文字</th></tr></thead>
+                <tbody>{stats.top5.map((r,i)=><tr key={i}><td>{i+1}</td><td>{r.name}</td><td>{r.chars}</td></tr>)}</tbody>
+              </table>
+            </div>
+            <div style={{flex:1}}>
+              <div className="highlight">📈 履歴</div>
+              <table>
+                <thead><tr><th>文字</th><th>ミス</th></tr></thead>
+                <tbody>{stats.history.map((r,i)=><tr key={i}><td>{r.chars}</td><td>{r.mistakes}</td></tr>)}</tbody>
+              </table>
+            </div>
+          </div>
+          <button onClick={() => location.reload()} style={{marginTop:25}}>トップへ戻る</button>
+        </div>
+      );
+    };
+
+    if (screen === "data") return <DataView title="📊 ミッション・ログ" isResult={false} />;
+    if (screen === "result") return <DataView title="🏁 タイムアップ！" isResult={true} />;
 
     if (screen === "typing") return (
       <div className="game-container">
@@ -110,40 +164,6 @@
             else setInput(e.target.value);
           }} 
         />
-      </div>
-    );
-
-    return (
-      <div className="card">
-        <h2 style={{color:"#00e5ff", margin:"0 0 20px 0"}}>🏁 ミッション完了！</h2>
-        
-        <div className="my-result-box">
-          <div><small>今回の文字数</small><br/><strong>{finalStats.current.chars}</strong></div>
-          <div><small>ミス</small><br/><strong style={{color:"#ff4d4d"}}>{finalStats.current.mistakes}</strong></div>
-        </div>
-
-        <div style={{display:"flex", gap:"15px", textAlign:"left"}}>
-          <div style={{flex:1}}>
-            <div className="highlight">🏆 全体ランキング</div>
-            <table>
-              <thead><tr><th>位</th><th>名</th><th>文字</th></tr></thead>
-              <tbody>
-                {finalStats.top5.map((r,i)=><tr key={i}><td>{i+1}</td><td>{r.name}</td><td>{r.chars}</td></tr>)}
-              </tbody>
-            </table>
-          </div>
-          <div style={{flex:1}}>
-            <div className="highlight">📈 自分の履歴</div>
-            <table>
-              <thead><tr><th>文字</th><th>ミス</th></tr></thead>
-              <tbody>
-                {finalStats.history.map((r,i)=><tr key={i}><td>{r.chars}</td><td>{r.mistakes}</td></tr>)}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        
-        <button onClick={() => location.reload()} style={{marginTop:25}}>トップへ戻る</button>
       </div>
     );
   }
